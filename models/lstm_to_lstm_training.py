@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 from torch import optim
 import pickle
+from sklearn.metrics import f1_score
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -180,14 +182,9 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
 
-    # encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
-
     loss = 0
+    pred = []
 
-    # for ei in range(input_length):
-    #     encoder_output, encoder_hidden = encoder(
-    #         input_tensor[ei], encoder_hidden)
-    #     encoder_outputs[ei] = encoder_output[0, 0]
     encoder_outputs, encoder_hidden = encoder(input_tensor.view(-1), encoder_hidden)
 
     decoder_input = torch.tensor([[SOS_token]], device=device)
@@ -201,6 +198,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
         decoder_input = topi.squeeze().detach()  # detach from history as input
 
         loss += criterion(decoder_output, target_tensor[di])
+        pred.append(decoder_output.argmax().item())
         if decoder_input.item() == EOS_token:
             break
 
@@ -209,13 +207,14 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() / target_length
+    return loss.item() / target_length, np.array(pred)
 
 
-def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.3):
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
+    f1 = 0
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
@@ -228,15 +227,21 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
         input_tensor = training_pair[0]
         target_tensor = training_pair[1]
 
-        loss = train(input_tensor, target_tensor, encoder,
+        loss, pred = train(input_tensor, target_tensor, encoder,
                      decoder, encoder_optimizer, decoder_optimizer, criterion)
         print_loss_total += loss
         plot_loss_total += loss
+        f1 += f1_score(target_tensor.numpy().reshape(-1), pred, average='micro')
+
+        # print("Pred: {}".format(pred))
+        # print("Target: {}".format(target_tensor.numpy()))
+        # print()
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('(%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
+            print('f1_score: {}'.format(f1 / iter))
 
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
@@ -258,6 +263,7 @@ def showPlot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
+    plt.show()
 
 
 hidden_size = 256
