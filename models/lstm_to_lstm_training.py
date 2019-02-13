@@ -4,11 +4,13 @@ import unicodedata
 import string
 import re
 import random
+from models.lstm_encoder import LSTMEncoder
+from models.lstm_decoder import LSTMDecoder
 
 import torch
 import torch.nn as nn
 from torch import optim
-import torch.nn.functional as F
+import pickle
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -16,7 +18,29 @@ SOS_token = 0
 EOS_token = 1
 
 
-class Lang:
+# class Lang:
+#     def __init__(self, name):
+#         self.name = name
+#         self.word2index = {}
+#         self.word2count = {}
+#         self.index2word = {0: "SOS", 1: "EOS"}
+#         self.n_words = 2  # Count SOS and EOS
+#
+#     def addSentence(self, sentence):
+#         for word in sentence.split(' '):
+#             self.addWord(word)
+#
+#     def addWord(self, word):
+#         if word not in self.word2index:
+#             self.word2index[word] = self.n_words
+#             self.word2count[word] = 1
+#             self.index2word[self.n_words] = word
+#             self.n_words += 1
+#         else:
+#             self.word2count[word] += 1
+
+
+class TokenLang:
     def __init__(self, name):
         self.name = name
         self.word2index = {}
@@ -25,7 +49,7 @@ class Lang:
         self.n_words = 2  # Count SOS and EOS
 
     def addSentence(self, sentence):
-        for word in sentence.split(' '):
+        for word in sentence:
             self.addWord(word)
 
     def addWord(self, word):
@@ -55,100 +79,99 @@ def normalizeString(s):
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     return s
 
-def readLangs(lang1, lang2, reverse=False):
-    print("Reading lines...")
-
-    # Read the file and split into lines
-    lines = open('data/%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
-        read().strip().split('\n')
-
-    # Split every line into pairs and normalize
-    pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
-
-    # Reverse pairs, make Lang instances
-    if reverse:
-        pairs = [list(reversed(p)) for p in pairs]
-        input_lang = Lang(lang2)
-        output_lang = Lang(lang1)
-    else:
-        input_lang = Lang(lang1)
-        output_lang = Lang(lang2)
-
-    return input_lang, output_lang, pairs
-
-
-MAX_LENGTH = 10
-
-eng_prefixes = (
-    "i am ", "i m ",
-    "he is", "he s ",
-    "she is", "she s ",
-    "you are", "you re ",
-    "we are", "we re ",
-    "they are", "they re "
-)
+# def readLangs(lang1, lang2, reverse=False):
+#     print("Reading lines...")
+#
+#     # Read the file and split into lines
+#     lines = open('data/%s-%s.txt' % (lang1, lang2), encoding='utf-8').\
+#         read().strip().split('\n')
+#
+#     # Split every line into pairs and normalize
+#     pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
+#
+#     # Reverse pairs, make Lang instances
+#     if reverse:
+#         pairs = [list(reversed(p)) for p in pairs]
+#         input_lang = Lang(lang2)
+#         output_lang = Lang(lang1)
+#     else:
+#         input_lang = Lang(lang1)
+#         output_lang = Lang(lang2)
+#
+#     return input_lang, output_lang, pairs
 
 
-def filterPair(p):
-    return len(p[0].split(' ')) < MAX_LENGTH and \
-        len(p[1].split(' ')) < MAX_LENGTH and \
-        p[1].startswith(eng_prefixes)
+def read_tokens():
+    data = pickle.load(open('../data/methods_tokens_data.pkl', 'rb'))
+    methods_source = data['methods_source'][:1000]
+    methods_names = data['methods_names'][:1000]
 
+    pairs = [(methods_source[i], methods_names[i]) for i in range(len(methods_source))]
+    return pairs
 
-def filterPairs(pairs):
-    return [pair for pair in pairs if filterPair(pair)]
-
-def prepareData(lang1, lang2, reverse=False):
-    input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
+def prepare_tokens():
+    lang = TokenLang('code')
+    pairs = read_tokens()
     print("Read %s sentence pairs" % len(pairs))
-    pairs = filterPairs(pairs)
-    print("Trimmed to %s sentence pairs" % len(pairs))
-    print("Counting words...")
     for pair in pairs:
-        input_lang.addSentence(pair[0])
-        output_lang.addSentence(pair[1])
+        lang.addSentence(pair[0])
+        lang.addSentence(pair[1])
     print("Counted words:")
-    print(input_lang.name, input_lang.n_words)
-    print(output_lang.name, output_lang.n_words)
-    return input_lang, output_lang, pairs
+    print(lang.name, lang.n_words)
+    return lang, pairs
 
 
-input_lang, output_lang, pairs = prepareData('eng', 'fra', True)
+# def prepareData(lang1, lang2, reverse=False):
+#     input_lang, output_lang, pairs = readLangs(lang1, lang2, reverse)
+#     print("Read %s sentence pairs" % len(pairs))
+#     print("Trimmed to %s sentence pairs" % len(pairs))
+#     print("Counting words...")
+#     for pair in pairs:
+#         input_lang.addSentence(pair[0])
+#         output_lang.addSentence(pair[1])
+#     print("Counted words:")
+#     print(input_lang.name, input_lang.n_words)
+#     print(output_lang.name, output_lang.n_words)
+#     return input_lang, output_lang, pairs
+
+
+# input_lang, output_lang, pairs = prepareData('eng', 'fra', True)
+# print(random.choice(pairs))
+lang, pairs = prepare_tokens()
 print(random.choice(pairs))
 
-def indexesFromSentence(lang, sentence):
-    return [lang.word2index[word] for word in sentence.split(' ')]
+
+# def indexesFromSentence(lang, sentence):
+#     return [lang.word2index[word] for word in sentence.split(' ')]
+
+def indexesFromSentenceTokens(lang, sentence):
+    return [lang.word2index[word] for word in sentence]
 
 
-def tensorFromSentence(lang, sentence):
-    indexes = indexesFromSentence(lang, sentence)
+# def tensorFromSentence(lang, sentence):
+#     indexes = indexesFromSentence(lang, sentence)
+#     indexes.append(EOS_token)
+#     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
+
+def tensorFromSentenceTokens(lang, sentence):
+    indexes = indexesFromSentenceTokens(lang, sentence)
     indexes.append(EOS_token)
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
 
 
-def tensorsFromPair(pair):
-    input_tensor = tensorFromSentence(input_lang, pair[0])
-    target_tensor = tensorFromSentence(output_lang, pair[1])
+# def tensorsFromPair(pair):
+#     input_tensor = tensorFromSentence(input_lang, pair[0])
+#     target_tensor = tensorFromSentence(output_lang, pair[1])
+#     return (input_tensor, target_tensor)
+
+def tensorsFromPairTokens(pair):
+    input_tensor = tensorFromSentenceTokens(lang, pair[0])
+    target_tensor = tensorFromSentenceTokens(lang, pair[1])
     return (input_tensor, target_tensor)
 
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '%dm %ds' % (m, s)
 
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
-
-
-teacher_forcing_ratio = 0.5
-
-
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length=MAX_LENGTH):
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer,
+          criterion, max_length=7100):
     encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
@@ -157,40 +180,29 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
 
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
+    # encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
 
-    for ei in range(input_length):
-        encoder_output, encoder_hidden = encoder(
-            input_tensor[ei], encoder_hidden)
-        encoder_outputs[ei] = encoder_output[0, 0]
+    # for ei in range(input_length):
+    #     encoder_output, encoder_hidden = encoder(
+    #         input_tensor[ei], encoder_hidden)
+    #     encoder_outputs[ei] = encoder_output[0, 0]
+    encoder_outputs, encoder_hidden = encoder(input_tensor.view(-1), encoder_hidden)
 
     decoder_input = torch.tensor([[SOS_token]], device=device)
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    for di in range(target_length):
+        decoder_output, decoder_hidden = decoder(
+            decoder_input, decoder_hidden)
+        topv, topi = decoder_output.topk(1)
+        decoder_input = topi.squeeze().detach()  # detach from history as input
 
-    if use_teacher_forcing:
-        # Teacher forcing: Feed the target as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            loss += criterion(decoder_output, target_tensor[di])
-            decoder_input = target_tensor[di]  # Teacher forcing
-
-    else:
-        # Without teacher forcing: use its own predictions as the next input
-        for di in range(target_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs)
-            topv, topi = decoder_output.topk(1)
-            decoder_input = topi.squeeze().detach()  # detach from history as input
-
-            loss += criterion(decoder_output, target_tensor[di])
-            if decoder_input.item() == EOS_token:
-                break
+        loss += criterion(decoder_output, target_tensor[di])
+        if decoder_input.item() == EOS_token:
+            break
 
     loss.backward()
 
@@ -200,33 +212,14 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     return loss.item() / target_length
 
 
-import time
-import math
-
-
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '%dm %ds' % (m, s)
-
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
-
-
 def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
-    start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
-    training_pairs = [tensorsFromPair(random.choice(pairs))
+    training_pairs = [tensorsFromPairTokens(random.choice(pairs))
                       for i in range(n_iters)]
     criterion = nn.NLLLoss()
 
@@ -243,8 +236,7 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
-            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
-                                         iter, iter / n_iters * 100, print_loss_avg))
+            print('(%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
 
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
@@ -257,7 +249,6 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 import matplotlib.ticker as ticker
-import numpy as np
 
 
 def showPlot(points):
@@ -267,3 +258,11 @@ def showPlot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
+
+
+hidden_size = 256
+# encoder1 = LSTMEncoder(input_lang.n_words, hidden_size).to(device)
+# attn_decoder1 = LSTMDecoder(hidden_size, output_lang.n_words).to(device)
+encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
+attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
+trainIters(encoder1, attn_decoder1, 75000, print_every=100)
