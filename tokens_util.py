@@ -3,8 +3,11 @@ from io import open
 import torch
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
+import pylab
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+np.random.seed(42)
 
 
 class TokenLang:
@@ -35,11 +38,13 @@ class TokenLang:
 
 
 def read_tokens():
-    data = pickle.load(open('../data/methods_tokens_data.pkl', 'rb'))
-    methods_source = data['methods_source'][:10]
-    methods_names = data['methods_names'][:10]
+    data = pickle.load(open('data/methods_tokens_data.pkl', 'rb'))
+    methods_source = data['methods_source']
+    methods_names = data['methods_names']
 
     pairs = [(methods_source[i], methods_names[i]) for i in range(len(methods_source))]
+    np.random.shuffle(pairs)
+
     return pairs
 
 
@@ -69,3 +74,14 @@ def tensors_from_pair_tokens(pair, lang):
     input_tensor = tensor_from_sentence_tokens(lang, pair[0])
     target_tensor = tensor_from_sentence_tokens(lang, pair[1])
     return input_tensor, target_tensor
+
+
+def plot_loss(train_losses, val_losses, file_path='plots/loss.jpg'):
+    plt.plot(train_losses)
+    plt.plot(val_losses)
+    plt.legend(('train loss', 'validation loss'), loc='upper right')
+    plt.title('Losses during training of LSTM->LSTM Model')
+    plt.xlabel('#epochs')
+    plt.ylabel('cross-entropy loss')
+    plt.show()
+    pylab.savefig(file_path)
