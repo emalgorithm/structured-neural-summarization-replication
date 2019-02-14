@@ -76,12 +76,14 @@ def tensors_from_pair_tokens(pair, lang):
     return input_tensor, target_tensor
 
 
-def plot_loss(train_losses, val_losses, file_path='plots/loss.jpg'):
+def plot_loss(train_losses, val_losses, test_losses, file_path='plots/loss.jpg'):
+    plt.clf()
     plt.plot(train_losses)
     plt.plot(val_losses)
-    plt.legend(('train loss', 'validation loss'), loc='upper right')
+    plt.plot(test_losses)
+    plt.legend(('train loss', 'validation loss', 'test loss'), loc='upper right')
     plt.title('Losses during training of LSTM->LSTM Model')
     plt.xlabel('#epochs')
     plt.ylabel('cross-entropy loss')
-    plt.show()
+    # plt.show()
     pylab.savefig(file_path)

@@ -11,6 +11,7 @@ from torch import optim
 from sklearn.metrics import f1_score
 import numpy as np
 from metrics import compute_rouge_scores
+import pickle
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -19,9 +20,9 @@ test_pairs = pairs[-10000:]
 val_pairs = pairs[-20000:-10000]
 train_pairs = pairs[:-20000]
 
-train_pairs = train_pairs[:10]
-val_pairs = val_pairs[:10]
-test_pairs = test_pairs[:100]
+test_pairs = test_pairs
+val_pairs = val_pairs
+train_pairs = train_pairs
 
 
 def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
@@ -75,6 +76,12 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
 def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learning_rate=0.1):
     train_losses = []
     val_losses = []
+    test_losses = []
+
+    test_f1_scores = []
+    test_rouge_2_scores = []
+    test_rouge_l_scores = []
+
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
@@ -86,6 +93,7 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
     training_pairs = [tensors_from_pair_tokens(random.choice(train_pairs), lang)
                       for i in range(n_iters)]
     val_tensor_pairs = [tensors_from_pair_tokens(val_pair, lang) for val_pair in val_pairs]
+    test_tensor_pairs = [tensors_from_pair_tokens(test_pair, lang) for test_pair in test_pairs]
     criterion = nn.NLLLoss()
 
     for iter in range(1, n_iters + 1):
@@ -124,10 +132,23 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
             train_loss = print_loss_avg
             val_loss, val_f1, val_rouge_2, val_rouge_l = evaluate(seq2seq_model, val_tensor_pairs,
                                                           criterion)
+            test_loss, test_f1, test_rouge_2, test_rouge_l = evaluate(seq2seq_model,
+                                                                     test_tensor_pairs,
+                                                                  criterion, eval='test')
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
-            plot_loss(train_losses, val_losses)
+            test_losses.append(test_loss)
+
+            test_f1_scores.append(test_f1)
+            test_rouge_2_scores.append(test_rouge_2)
+            test_rouge_l_scores.append(test_rouge_l)
+
+            pickle.dump([train_losses, val_losses, test_losses, test_f1_scores, test_rouge_2_scores,
+                         test_rouge_l_scores],
+                        open('results/res.pkl', 'wb'))
+
+            plot_loss(train_losses, val_losses, test_losses)
 
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
@@ -135,8 +156,10 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
             plot_loss_total = 0
 
 
+
+
 hidden_size = 256
 encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
 attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
 lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
-train_iters(lstm2lstm, 75000, print_every=10, plot_every=10)
+train_iters(lstm2lstm, 500000, print_every=1000, plot_every=1000)
