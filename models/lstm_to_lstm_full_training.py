@@ -1,0 +1,85 @@
+from __future__ import unicode_literals, print_function, division
+import random
+from models.lstm_encoder import LSTMEncoder
+from models.lstm_decoder import LSTMDecoder
+from models.lstm_to_lstm import Seq2Seq
+from tokens_util import prepare_tokens, tensors_from_pair_tokens
+
+import torch
+import torch.nn as nn
+from torch import optim
+from sklearn.metrics import f1_score
+import numpy as np
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+lang, pairs = prepare_tokens()
+
+
+def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
+    optimizer.zero_grad()
+
+    output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
+    loss = criterion(output.view(-1, output.size(2)), target_tensor.view(-1))
+    pred = output.view(-1, output.size(2)).argmax(1).numpy()
+
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.item(), pred
+
+
+def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learning_rate=0.1):
+    plot_losses = []
+    print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
+    f1 = 0
+
+    optimizer = optim.SGD(seq2seq_model.parameters(), lr=learning_rate)
+    training_pairs = [tensors_from_pair_tokens(random.choice(pairs), lang)
+                      for i in range(n_iters)]
+    criterion = nn.NLLLoss()
+
+    for iter in range(1, n_iters + 1):
+        training_pair = training_pairs[iter - 1]
+        input_tensor = training_pair[0]
+        target_tensor = training_pair[1]
+
+        loss, pred = train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion)
+        print_loss_total += loss
+        plot_loss_total += loss
+
+        y_true = target_tensor.numpy().reshape(-1)
+
+        if len(y_true) < len(pred):
+            y_true = np.pad(y_true, (0, len(pred) - len(y_true)), mode='constant')
+        else:
+            pred = np.pad(pred, (0, len(y_true) - len(pred)), mode='constant')
+
+        f1 += f1_score(y_true, pred, average='micro')
+
+        # print("Pred: {}".format(lang.to_tokens(pred)))
+        # print("Target: {}".format(lang.to_tokens(target_tensor.numpy().reshape(-1))))
+        # print()
+
+
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('(%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
+            print('f1_score: {}'.format(f1 / iter))
+
+        # if iter % plot_every == 0:
+        #     plot_loss_avg = plot_loss_total / plot_every
+        #     plot_losses.append(plot_loss_avg)
+        #     plot_loss_total = 0
+
+    # showPlot(plot_losses)
+
+
+hidden_size = 256
+encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
+attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
+lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
+train_iters(lstm2lstm, 75000, print_every=10)

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import random
 
 
 class Seq2Seq(nn.Module):
@@ -11,33 +10,28 @@ class Seq2Seq(nn.Module):
         self.decoder = decoder
         self.device = device
 
-        assert encoder.hid_dim == decoder.hid_dim, "Hidden dimensions of encoder and decoder must be equal!"
-        assert encoder.n_layers == decoder.n_layers, "Encoder and decoder must have equal number of layers!"
+        assert encoder.hidden_size == decoder.hidden_size, "Hidden dimensions of encoder and decoder " \
+                                                    "must be equal!"
 
-    def forward(self, src, trg, teacher_forcing_ratio=0.5):
-        # src = [src sent len, batch size]
-        # trg = [trg sent len, batch size]
-        # teacher_forcing_ratio is probability to use teacher forcing
-        # e.g. if teacher_forcing_ratio is 0.75 we use ground-truth inputs 75% of the time
-
-        batch_size = trg.shape[1]
-        max_len = trg.shape[0]
-        trg_vocab_size = self.decoder.output_dim
+    def forward(self, sequence, target):
+        batch_size = 1
+        max_len = target.shape[0]
+        target_vocab_size = self.decoder.output_size
 
         # tensor to store decoder outputs
-        outputs = torch.zeros(max_len, batch_size, trg_vocab_size).to(self.device)
+        outputs = torch.zeros(max_len, batch_size, target_vocab_size).to(self.device)
 
         # last hidden state of the encoder is used as the initial hidden state of the decoder
-        hidden, cell = self.encoder(src)
+        output, hidden = self.encoder(sequence)
 
         # first input to the decoder is the <sos> tokens
-        input = trg[0, :]
+        input = torch.tensor([[0]], device=self.device)
 
         for t in range(1, max_len):
-            output, hidden, cell = self.decoder(input, hidden, cell)
+            output, hidden = self.decoder(input, hidden)
             outputs[t] = output
-            teacher_force = random.random() < teacher_forcing_ratio
             top1 = output.max(1)[1]
-            input = (trg[t] if teacher_force else top1)
+            input = top1
 
         return outputs
+
