@@ -10,12 +10,13 @@ class LSTMEncoder(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.gru = nn.LSTM(hidden_size, hidden_size, batch_first=True)
 
-    def forward(self, input, hidden):
+    def forward(self, input):
+        hidden = self.init_hidden()
         embedded = self.embedding(input).view(1, -1, self.hidden_size)
         output = embedded
         output, hidden = self.gru(output, hidden)
         return output, hidden
 
-    def initHidden(self):
+    def init_hidden(self):
         return (torch.zeros(1, 1, self.hidden_size),
                 torch.zeros(1, 1, self.hidden_size))

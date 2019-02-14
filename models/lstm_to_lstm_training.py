@@ -17,7 +17,7 @@ print(random.choice(pairs))
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer,
           criterion, max_length=7100):
-    encoder_hidden = encoder.initHidden()
+    # encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -28,7 +28,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = 0
     pred = []
 
-    encoder_outputs, encoder_hidden = encoder(input_tensor.view(-1), encoder_hidden)
+    encoder_outputs, encoder_hidden = encoder(input_tensor.view(-1))
 
     decoder_input = torch.tensor([[lang.SOS_token]], device=device)
 
@@ -95,27 +95,12 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             print('(%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
             print('f1_score: {}'.format(f1 / iter))
 
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
+        # if iter % plot_every == 0:
+        #     plot_loss_avg = plot_loss_total / plot_every
+        #     plot_losses.append(plot_loss_avg)
+        #     plot_loss_total = 0
 
-    showPlot(plot_losses)
-
-
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
-import matplotlib.ticker as ticker
-
-
-def showPlot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    # this locator puts ticks at regular intervals
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
-    plt.show()
+    # showPlot(plot_losses)
 
 
 hidden_size = 256
