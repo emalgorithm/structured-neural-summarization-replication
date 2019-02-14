@@ -7,7 +7,7 @@ class LSTMDecoder(nn.Module):
     def __init__(self, hidden_size, output_size):
         super(LSTMDecoder, self).__init__()
         self.hidden_size = hidden_size
-
+        self.output_size = output_size
         self.embedding = nn.Embedding(output_size, hidden_size)
         self.gru = nn.LSTM(hidden_size, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
