@@ -9,7 +9,7 @@ class LSTMDecoder(nn.Module):
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
+        self.gru = nn.LSTM(hidden_size, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -21,4 +21,5 @@ class LSTMDecoder(nn.Module):
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size)
+        return (torch.zeros(1, 1, self.hidden_size),
+                torch.zeros(1, 1, self.hidden_size))
