@@ -10,6 +10,7 @@ import torch.nn as nn
 from torch import optim
 from sklearn.metrics import f1_score
 import numpy as np
+from metrics import compute_rouge_scores
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,6 +36,8 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
     f1 = 0
+    rouge_2 = 0
+    rouge_l = 0
 
     optimizer = optim.SGD(seq2seq_model.parameters(), lr=learning_rate)
     training_pairs = [tensors_from_pair_tokens(random.choice(pairs), lang)
@@ -58,17 +61,21 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
             pred = np.pad(pred, (0, len(y_true) - len(pred)), mode='constant')
 
         f1 += f1_score(y_true, pred, average='micro')
+        rouge_2_temp, rouge_l_temp = compute_rouge_scores(pred, y_true)
+        rouge_2 += rouge_2_temp
+        rouge_l += rouge_l_temp
 
         # print("Pred: {}".format(lang.to_tokens(pred)))
         # print("Target: {}".format(lang.to_tokens(target_tensor.numpy().reshape(-1))))
         # print()
-
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('(%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
             print('f1_score: {}'.format(f1 / iter))
+            print('rouge_2_score: {}'.format(rouge_2 / iter))
+            print('rouge_l_score: {}'.format(rouge_l / iter))
 
         # if iter % plot_every == 0:
         #     plot_loss_avg = plot_loss_total / plot_every
