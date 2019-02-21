@@ -28,12 +28,6 @@ def get_method_edges(method_node_id, file_adj_list, file_nodes):
     method_nodes_ids = []
 
     get_method_nodes_rec(method_node_id, method_nodes_ids, file_adj_list)
-
-    # method_adj_list = {node: [] for node in method_nodes_ids}
-    # for node in method_nodes_ids:
-    #     for edge in file_adj_list[node]:
-    #         if edge['destination'] in method_nodes_ids:
-    #             method_adj_list[node].append(edge['destination'])
     methods_edges = []
 
     for node in method_nodes_ids:
@@ -236,14 +230,14 @@ def get_tokens_dataset_from_dir(dir="../corpus/r252-corpus-features/"):
     methods_names = []
     methods_graphs = []
 
-    proto_files = list(Path(dir).rglob("*.proto"))[:10]
+    proto_files = list(Path(dir).rglob("*.proto"))
     print("A total of {} files have been found".format(len(proto_files)))
 
     # proto_files = [Path("../features-javac-master/Test.java.proto")]
 
-    for i, file in enumerate(proto_files):
+    for i, file in enumerate(proto_files[:100]):
         nx_graph = get_nx_graph(file)
-        if i % 100 == 0:
+        if i % 10 == 0:
             print("Extracting data from file {}".format(i+1))
         file_methods_source, file_methods_names, file_methods_graph = \
             get_methods_source_and_name(file, nx_graph)
@@ -254,70 +248,70 @@ def get_tokens_dataset_from_dir(dir="../corpus/r252-corpus-features/"):
     return methods_source, methods_names, methods_graphs
 
 
-# def get_method_nodes(method_node, file_graph):
-#     method_nodes = [method_node]
-#     get_method_nodes_rec(method_node, file_graph, method_nodes)
-#
-#     return method_nodes
-#
-#
-# def get_method_nodes_rec(node, file_graph, method_nodes):
-#     print(len(method_nodes))
-#     for e in file_graph.edge:
-#         neighbour = e.destinationId
-#         if neighbour not in method_nodes:
-#             method_nodes.append(neighbour)
-#             get_method_nodes(neighbour, nx_graph, method_nodes)
+def get_method_nodes(method_node, file_graph):
+    method_nodes = [method_node]
+    get_method_nodes_rec(method_node, file_graph, method_nodes)
 
-#
-# def get_augmented_graph(file):
-#     # TODO: Does each method in a file have a different graph?
-#     with file.open('rb') as f:
-#         g = Graph()
-#         g.ParseFromString(f.read())
-#
-#         augmented_graph = nx.Graph()
-#         new_node_id = max([node.id for node in g.node]) + 1
-#
-#         split_identifiers_node = [node for node in g.node if node.type == FeatureNode.IDENTIFIER_TOKEN
-#                                   and len(split_identifier_into_parts(node.contents)) > 1]
-#
-#         # Add all edges
-#         for edge in g.edge:
-#             edge_type = [name for name, value in list(vars(FeatureEdge).items())[8:] if value ==
-#                          edge.type][0]
-#             augmented_graph.add_edge(edge.sourceId, edge.destinationId, edge_type=edge_type)
-#
-#         # Add new edges for split identifiers and sub identifiers
-#         for node in split_identifiers_node:
-#             sub_identifiers = split_identifier_into_parts(node.contents)
-#             sub_identifiers_ids = list(range(new_node_id, new_node_id + len(sub_identifiers)))
-#             new_node_id += len(sub_identifiers)
-#
-#             # ADD NEXT_TOKEN edge from node before identifier to first sub-identifier
-#             previous_token_node_id = find_previous_token_node_id(node, g)
-#             augmented_graph.add_edge(previous_token_node_id, sub_identifiers_ids[0],
-#                                      edge_type="NEXT_TOKEN")
-#
-#             # ADD NEXT_TOKEN edge from last sub-identifier to node after identifier
-#             next_token_node_id = find_next_token_node_id(node, g)
-#             augmented_graph.add_edge(sub_identifiers_ids[-1], next_token_node_id,
-#                                      edge_type="NEXT_TOKEN")
-#
-#             # ADD AST_CHILD edge from ast parent of node to first sub-identifier
-#             # ast_parent_node_id = find_ast_parent_node_id(node, g)
-#             # augmented_graph.add_edge(ast_parent_node_id, sub_identifiers_ids[0],
-#             #                          edge_type="ASSOCIATED_TOKEN")
-#
-#             for i, sub_identifier_id in enumerate(sub_identifiers_ids):
-#                 # Add IN_TOKEN edges from sub-identifiers to identifier
-#                 augmented_graph.add_edge(sub_identifier_id, node.id, edge_type="IN_TOKEN")
-#
-#                 # ADD NEXT_TOKEN edges from sub-identifier to next sub-identifier
-#                 if i < len(sub_identifiers_ids) - 1:
-#                     augmented_graph.add_edge(sub_identifiers_ids[i], sub_identifiers_ids[i + 1],
-#                                              edge_type="NEXT_TOKEN")
-#     return augmented_graph
+    return method_nodes
+
+
+def get_method_nodes_rec(node, file_graph, method_nodes):
+    print(len(method_nodes))
+    for e in file_graph.edge:
+        neighbour = e.destinationId
+        if neighbour not in method_nodes:
+            method_nodes.append(neighbour)
+            get_method_nodes(neighbour, nx_graph, method_nodes)
+
+
+def get_augmented_graph(file):
+    # TODO: Does each method in a file have a different graph?
+    with file.open('rb') as f:
+        g = Graph()
+        g.ParseFromString(f.read())
+
+        augmented_graph = nx.Graph()
+        new_node_id = max([node.id for node in g.node]) + 1
+
+        split_identifiers_node = [node for node in g.node if node.type == FeatureNode.IDENTIFIER_TOKEN
+                                  and len(split_identifier_into_parts(node.contents)) > 1]
+
+        # Add all edges
+        for edge in g.edge:
+            edge_type = [name for name, value in list(vars(FeatureEdge).items())[8:] if value ==
+                         edge.type][0]
+            augmented_graph.add_edge(edge.sourceId, edge.destinationId, edge_type=edge_type)
+
+        # Add new edges for split identifiers and sub identifiers
+        for node in split_identifiers_node:
+            sub_identifiers = split_identifier_into_parts(node.contents)
+            sub_identifiers_ids = list(range(new_node_id, new_node_id + len(sub_identifiers)))
+            new_node_id += len(sub_identifiers)
+
+            # ADD NEXT_TOKEN edge from node before identifier to first sub-identifier
+            previous_token_node_id = find_previous_token_node_id(node, g)
+            augmented_graph.add_edge(previous_token_node_id, sub_identifiers_ids[0],
+                                     edge_type="NEXT_TOKEN")
+
+            # ADD NEXT_TOKEN edge from last sub-identifier to node after identifier
+            next_token_node_id = find_next_token_node_id(node, g)
+            augmented_graph.add_edge(sub_identifiers_ids[-1], next_token_node_id,
+                                     edge_type="NEXT_TOKEN")
+
+            # ADD AST_CHILD edge from ast parent of node to first sub-identifier
+            # ast_parent_node_id = find_ast_parent_node_id(node, g)
+            # augmented_graph.add_edge(ast_parent_node_id, sub_identifiers_ids[0],
+            #                          edge_type="ASSOCIATED_TOKEN")
+
+            for i, sub_identifier_id in enumerate(sub_identifiers_ids):
+                # Add IN_TOKEN edges from sub-identifiers to identifier
+                augmented_graph.add_edge(sub_identifier_id, node.id, edge_type="IN_TOKEN")
+
+                # ADD NEXT_TOKEN edges from sub-identifier to next sub-identifier
+                if i < len(sub_identifiers_ids) - 1:
+                    augmented_graph.add_edge(sub_identifiers_ids[i], sub_identifiers_ids[i + 1],
+                                             edge_type="NEXT_TOKEN")
+    return augmented_graph
 
 
 def find_previous_token_node_id(node, g):
