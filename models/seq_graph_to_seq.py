@@ -29,12 +29,12 @@ class SeqGraph2Seq(nn.Module):
         # graph_hidden has shape [1, 1, hidden_size] and contains a graph representation
         n_nodes = adj.size(0)
         n_tokens = sequence.size(0)
-        x = torch.zeros(n_nodes, output.size(2))
+        x = torch.zeros(n_nodes, output.size(2)).to(self.device)
         x[:n_tokens, :] = output.view(output.size(1), output.size(2))
         graph_hidden = self.graph_encoder(x=x, adj=adj)
 
         # first input to the decoder is the <sos> tokens
-        input = torch.tensor([[0]], device=self.device)
+        input = torch.tensor([[0]], device=self.device).to(self.device)
         hidden = (graph_hidden.view(1, 1, graph_hidden.size(0)), hidden[1])
 
         for t in range(1, max_len):
