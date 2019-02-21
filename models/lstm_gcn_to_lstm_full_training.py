@@ -22,7 +22,7 @@ lang, pairs = prepare_data()
 # test_pairs = pairs[-10000:]
 # val_pairs = pairs[-20000:-10000]
 # train_pairs = pairs[:-20000]
-pairs = pairs[:100]
+# pairs = pairs[:100]
 train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
 
 test_pairs = test_pairs
@@ -98,11 +98,22 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
     rouge_l = 0
 
     optimizer = optim.Adam(seq2seq_model.parameters(), lr=learning_rate)
+
+    # training_pairs = []
+    # for i in range(n_iters):
+    #     print(i)
+    #     training_pairs.append(tensors_from_pair_tokens_graph(random.choice(train_pairs), lang))
+
     training_pairs = [tensors_from_pair_tokens_graph(random.choice(train_pairs), lang)
                       for i in range(n_iters)]
+
+
+
     val_tensor_pairs = [tensors_from_pair_tokens_graph(val_pair, lang) for val_pair in val_pairs]
     test_tensor_pairs = [tensors_from_pair_tokens_graph(test_pair, lang) for test_pair in test_pairs]
     criterion = nn.NLLLoss()
+
+    print("Finished preparing data")
 
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
@@ -175,4 +186,4 @@ attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
 lstm2lstm = SeqGraph2Seq(seq_encoder=encoder1, graph_encoder=graph_encoder,
                          seq_decoder=attn_decoder1, device=device)
 # lstm2lstm = Seq2Seq(encoder=encoder1, decoder=attn_decoder1, device=device)
-train_iters(lstm2lstm, 5000, print_every=100, plot_every=1000)
+train_iters(lstm2lstm, 100000, print_every=100, plot_every=1000)
