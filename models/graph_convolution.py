@@ -5,6 +5,8 @@ import torch
 from torch.nn.parameter import Parameter
 from torch.nn.modules.module import Module
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class GraphConvolution(Module):
     """
@@ -15,9 +17,9 @@ class GraphConvolution(Module):
         super(GraphConvolution, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = Parameter(torch.FloatTensor(in_features, out_features))
+        self.weight = Parameter(torch.FloatTensor(in_features, out_features)).to(device)
         if bias:
-            self.bias = Parameter(torch.FloatTensor(out_features))
+            self.bias = Parameter(torch.FloatTensor(out_features)).to(device)
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -29,8 +31,8 @@ class GraphConvolution(Module):
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input, adj):
-        support = torch.mm(input, self.weight)
-        output = torch.spmm(adj, support)
+        support = torch.mm(input, self.weight).to(device)
+        output = torch.spmm(adj, support).to(device)
         if self.bias is not None:
             return output + self.bias
         else:
