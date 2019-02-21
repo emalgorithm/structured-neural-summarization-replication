@@ -25,9 +25,9 @@ lang, pairs = prepare_data()
 pairs = pairs[:100]
 train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
 
-test_pairs = test_pairs.to(device)
-val_pairs = val_pairs.to(device)
-train_pairs = train_pairs.to(device)
+test_pairs = test_pairs
+val_pairs = val_pairs
+train_pairs = train_pairs
 
 
 def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
@@ -38,9 +38,9 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
         rouge_l = 0
         for i in range(len(eval_pairs)):
             eval_pair = eval_pairs[i]
-            input_tensor = eval_pair[0][0]
-            adj_tensor = eval_pair[0][1]
-            target_tensor = eval_pair[1]
+            input_tensor = eval_pair[0][0].to(device)
+            adj_tensor = eval_pair[0][1].to(device)
+            target_tensor = eval_pair[1].to(device)
 
             output = seq2seq_model(input_tensor.view(-1), adj_tensor, target_tensor.view(-1))
             # output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
@@ -106,9 +106,9 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
 
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
-        input_tensor = training_pair[0][0]
-        adj_tensor = training_pair[0][1]
-        target_tensor = training_pair[1]
+        input_tensor = training_pair[0][0].to(device)
+        adj_tensor = training_pair[0][1].to(device)
+        target_tensor = training_pair[1].to(device)
 
         loss, pred = train(input_tensor, adj_tensor, target_tensor, seq2seq_model, optimizer,
                            criterion)

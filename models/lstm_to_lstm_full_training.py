@@ -16,9 +16,11 @@ import pickle
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 lang, pairs = prepare_tokens()
-test_pairs = pairs[-10000:]
-val_pairs = pairs[-20000:-10000]
-train_pairs = pairs[:-20000]
+# test_pairs = pairs[-10000:]
+# val_pairs = pairs[-20000:-10000]
+# train_pairs = pairs[:-20000]
+pairs = pairs[:100]
+train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
 
 test_pairs = test_pairs
 val_pairs = val_pairs
@@ -162,4 +164,4 @@ hidden_size = 256
 encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
 attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
 lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
-train_iters(lstm2lstm, 500000, print_every=1000, plot_every=1000)
+train_iters(lstm2lstm, 500000, print_every=10, plot_every=1000)
