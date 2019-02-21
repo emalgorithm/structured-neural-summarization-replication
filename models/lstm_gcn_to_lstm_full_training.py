@@ -19,6 +19,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Model running on {}".format(device))
 
 lang, pairs = prepare_data()
+pairs = [pair for pair in pairs if len(pair[0][1]) > 0]
 # test_pairs = pairs[-10000:]
 # val_pairs = pairs[-20000:-10000]
 # train_pairs = pairs[:-20000]
