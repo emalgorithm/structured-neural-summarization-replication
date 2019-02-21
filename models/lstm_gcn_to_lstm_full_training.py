@@ -16,6 +16,7 @@ from metrics import compute_rouge_scores
 import pickle
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Model running on {}".format(device))
 
 lang, pairs = prepare_data()
 # test_pairs = pairs[-10000:]
@@ -24,9 +25,9 @@ lang, pairs = prepare_data()
 pairs = pairs[:100]
 train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
 
-test_pairs = test_pairs
-val_pairs = val_pairs
-train_pairs = train_pairs
+test_pairs = test_pairs.to(device)
+val_pairs = val_pairs.to(device)
+train_pairs = train_pairs.to(device)
 
 
 def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
