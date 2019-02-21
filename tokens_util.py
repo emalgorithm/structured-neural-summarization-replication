@@ -60,6 +60,31 @@ def prepare_tokens():
     return lang, pairs
 
 
+def prepare_data():
+    lang = TokenLang('code')
+    pairs = read_data()
+    print("Read %s sentence pairs" % len(pairs))
+    for pair in pairs:
+        lang.addSentence(pair[0][0])
+        lang.addSentence(pair[1])
+    print("Counted words:")
+    print(lang.name, lang.n_words)
+    return lang, pairs
+
+
+def read_data():
+    data = pickle.load(open('data/methods_tokens_graphs.pkl', 'rb'))
+    methods_source = data['methods_source']
+    methods_graphs = data['methods_graphs']
+    methods_names = data['methods_names']
+
+    pairs = [((methods_source[i], methods_graphs[i]), methods_names[i]) for i in range(len(
+        methods_source))]
+    np.random.shuffle(pairs)
+
+    return pairs
+
+
 def indexes_from_sentence_tokens(lang, sentence):
     return [lang.word2index[word] for word in sentence]
 
@@ -74,6 +99,25 @@ def tensors_from_pair_tokens(pair, lang):
     input_tensor = tensor_from_sentence_tokens(lang, pair[0])
     target_tensor = tensor_from_sentence_tokens(lang, pair[1])
     return input_tensor, target_tensor
+
+
+def sparse_adj_from_edges(edges):
+    f = [e[0] for e in edges]
+    t = [e[1] for e in edges]
+    n_nodes = max(f + t) + 1
+    idxs = torch.LongTensor(edges)
+    values = torch.ones(len(edges))
+
+    adj = torch.sparse.FloatTensor(idxs.t(), values, torch.Size([n_nodes, n_nodes]))
+
+    return adj
+
+
+def tensors_from_pair_tokens_graph(pair, lang):
+    input_tensor = tensor_from_sentence_tokens(lang, pair[0][0])
+    input_adj = sparse_adj_from_edges(pair[0][1])
+    target_tensor = tensor_from_sentence_tokens(lang, pair[1])
+    return (input_tensor, input_adj), target_tensor
 
 
 def plot_loss(train_losses, val_losses, test_losses, file_path='plots/loss.jpg'):
