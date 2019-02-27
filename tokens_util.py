@@ -39,6 +39,7 @@ class TokenLang:
 
 def read_tokens():
     data = pickle.load(open('data/methods_tokens_data.pkl', 'rb'))
+    # data = pickle.load(open('../data/methods_tokens_data.pkl', 'rb'))
     methods_source = data['methods_source']
     methods_names = data['methods_names']
 
@@ -109,7 +110,6 @@ def sparse_adj_from_edges(edges):
     values = torch.ones(len(edges))
 
     adj = torch.sparse.FloatTensor(idxs.t(), values, torch.Size([n_nodes, n_nodes]))
-
     return adj
 
 
@@ -120,12 +120,12 @@ def tensors_from_pair_tokens_graph(pair, lang):
     return (input_tensor, input_adj), target_tensor
 
 
-def plot_loss(train_losses, val_losses, test_losses, file_path='plots/loss.jpg'):
+def plot_loss(train_losses, val_losses, test_losses=None, file_path='plots/loss.jpg'):
     plt.clf()
     plt.plot(train_losses)
     plt.plot(val_losses)
-    plt.plot(test_losses)
-    plt.legend(('train loss', 'validation loss', 'test loss'), loc='upper right')
+    # plt.plot(test_losses)
+    plt.legend(('train loss', 'validation loss'), loc='upper right')
     plt.title('Losses during training of LSTM->LSTM Model')
     plt.xlabel('#epochs')
     plt.ylabel('cross-entropy loss')
