@@ -78,7 +78,7 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
     return loss.item(), pred
 
 
-def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.1,
+def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.05,
                 model_dir=None, lang=None):
     train_losses = []
     val_losses = []
@@ -96,7 +96,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
     train_pairs, val_pairs, test_pairs = np.split(pairs,
                                                   [int(.8 * len(pairs)), int(.9 * len(pairs))])
 
-    optimizer = optim.SGD(seq2seq_model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(seq2seq_model.parameters(), lr=learning_rate)
     training_pairs = [tensors_from_pair_tokens(random.choice(train_pairs), lang)
                       for i in range(n_iters)]
     val_tensor_pairs = [tensors_from_pair_tokens(val_pair, lang) for val_pair in val_pairs]
