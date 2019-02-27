@@ -22,13 +22,15 @@ class Seq2Seq(nn.Module):
         outputs = torch.zeros(max_len, batch_size, target_vocab_size).to(self.device)
 
         # last hidden state of the encoder is used as the initial hidden state of the decoder
-        output, hidden = self.encoder(sequence)
+        # hidden contains last hidden state of encoder
+        # output contains the hidden states for all input elements
+        encoder_output, hidden = self.encoder(sequence)
 
         # first input to the decoder is the <sos> tokens
         input = torch.tensor([[0]], device=self.device)
 
         for t in range(1, max_len):
-            output, hidden = self.decoder(input, hidden)
+            output, hidden = self.decoder(input, hidden, encoder_output)
             outputs[t] = output
             top1 = output.max(1)[1]
             input = top1

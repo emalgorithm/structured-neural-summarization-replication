@@ -2,6 +2,7 @@ from __future__ import unicode_literals, print_function, division
 import random
 from models.lstm_encoder import LSTMEncoder
 from models.lstm_decoder import LSTMDecoder
+from models.attention_decoder import AttentionDecoder
 from models.lstm_to_lstm import Seq2Seq
 from tokens_util import prepare_tokens, tensors_from_pair_tokens, plot_loss
 
@@ -12,19 +13,21 @@ from sklearn.metrics import f1_score
 import numpy as np
 from metrics import compute_rouge_scores
 import pickle
+import os
+import sys
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-lang, pairs = prepare_tokens()
-# test_pairs = pairs[-10000:]
-# val_pairs = pairs[-20000:-10000]
-# train_pairs = pairs[:-20000]
-pairs = pairs[:100]
-train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
-
-test_pairs = test_pairs
-val_pairs = val_pairs
-train_pairs = train_pairs
+# lang, pairs = prepare_tokens()
+# # test_pairs = pairs[-10000:]
+# # val_pairs = pairs[-20000:-10000]
+# # train_pairs = pairs[:-20000]
+# # pairs = pairs[:100]
+# train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
+#
+# test_pairs = test_pairs
+# val_pairs = val_pairs
+# train_pairs = train_pairs
 
 
 def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
@@ -75,27 +78,29 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
     return loss.item(), pred
 
 
-def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learning_rate=0.1):
+def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.1,
+                model_dir=None, lang=None):
     train_losses = []
     val_losses = []
-    test_losses = []
 
-    test_f1_scores = []
-    test_rouge_2_scores = []
-    test_rouge_l_scores = []
+    # test_f1_scores = []
+    # test_rouge_2_scores = []
+    # test_rouge_l_scores = []
 
-    plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
     f1 = 0
     rouge_2 = 0
     rouge_l = 0
 
+    train_pairs, val_pairs, test_pairs = np.split(pairs,
+                                                  [int(.8 * len(pairs)), int(.9 * len(pairs))])
+
     optimizer = optim.SGD(seq2seq_model.parameters(), lr=learning_rate)
     training_pairs = [tensors_from_pair_tokens(random.choice(train_pairs), lang)
                       for i in range(n_iters)]
     val_tensor_pairs = [tensors_from_pair_tokens(val_pair, lang) for val_pair in val_pairs]
-    test_tensor_pairs = [tensors_from_pair_tokens(test_pair, lang) for test_pair in test_pairs]
+    # test_tensor_pairs = [tensors_from_pair_tokens(test_pair, lang) for test_pair in test_pairs]
     criterion = nn.NLLLoss()
 
     for iter in range(1, n_iters + 1):
@@ -134,34 +139,41 @@ def train_iters(seq2seq_model, n_iters, print_every=1000, plot_every=100, learni
             train_loss = print_loss_avg
             val_loss, val_f1, val_rouge_2, val_rouge_l = evaluate(seq2seq_model, val_tensor_pairs,
                                                           criterion)
-            test_loss, test_f1, test_rouge_2, test_rouge_l = evaluate(seq2seq_model,
-                                                                     test_tensor_pairs,
-                                                                  criterion, eval='test')
+            # test_loss, test_f1, test_rouge_2, test_rouge_l = evaluate(seq2seq_model,
+            #                                                          test_tensor_pairs,
+            #                                                       criterion, eval='test')
+
+            if not val_losses or val_loss < min(val_losses):
+                torch.save(seq2seq_model.state_dict(), model_dir + 'model.pt')
+                print("Saved updated model")
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
-            test_losses.append(test_loss)
+            # test_losses.append(test_loss)
 
-            test_f1_scores.append(test_f1)
-            test_rouge_2_scores.append(test_rouge_2)
-            test_rouge_l_scores.append(test_rouge_l)
+            # test_f1_scores.append(test_f1)
+            # test_rouge_2_scores.append(test_rouge_2)
+            # test_rouge_l_scores.append(test_rouge_l)
 
-            pickle.dump([train_losses, val_losses, test_losses, test_f1_scores, test_rouge_2_scores,
-                         test_rouge_l_scores],
-                        open('results/res.pkl', 'wb'))
+            pickle.dump([train_losses, val_losses],
+                        open(model_dir + 'res.pkl', 'wb'))
 
-            plot_loss(train_losses, val_losses, test_losses)
-
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
+            plot_loss(train_losses, val_losses, file_path=model_dir + 'loss.jpg')
 
 
-
-
-hidden_size = 256
-encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
-attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
-lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
-train_iters(lstm2lstm, 500000, print_every=10, plot_every=1000)
+# def main(model_name):
+#     model_dir = '../results/{}/'.format(model_name)
+#     if not os.path.exists(model_dir):
+#         os.makedirs(model_dir)
+#
+#     hidden_size = 256
+#     encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
+#     attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
+#     # attn_decoder1 = AttentionDecoder(hidden_size, lang.n_words).to(device)
+#     lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
+#     train_iters(lstm2lstm, 500000, print_every=100, model_dir=model_dir)
+#     # train_iters(lstm2lstm, 50, print_every=10, plot_every=1000)
+#
+#
+# if __name__ == "__main__":
+#     main(sys.argv[1])
