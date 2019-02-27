@@ -43,9 +43,9 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
 
             output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
             loss += criterion(output.view(-1, output.size(2)), target_tensor.view(-1))
-            pred = output.view(-1, output.size(2)).argmax(1).numpy()
+            pred = output.view(-1, output.size(2)).argmax(1).cpu().numpy()
 
-            y_true = target_tensor.numpy().reshape(-1)
+            y_true = target_tensor.cpu().numpy().reshape(-1)
             f1 += f1_score(y_true, pred, average='micro')
             rouge_2_temp, rouge_l_temp = compute_rouge_scores(pred, y_true)
             rouge_2 += rouge_2_temp
@@ -69,7 +69,7 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
 
     output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
     loss = criterion(output.view(-1, output.size(2)), target_tensor.view(-1))
-    pred = output.view(-1, output.size(2)).argmax(1).numpy()
+    pred = output.view(-1, output.size(2)).argmax(1).cpu().numpy()
 
     loss.backward()
 
@@ -112,7 +112,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
         print_loss_total += loss
         plot_loss_total += loss
 
-        y_true = target_tensor.numpy().reshape(-1)
+        y_true = target_tensor.cpu().numpy().reshape(-1)
 
         if len(y_true) < len(pred):
             y_true = np.pad(y_true, (0, len(pred) - len(y_true)), mode='constant')
