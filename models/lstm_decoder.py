@@ -14,6 +14,7 @@ class LSTMDecoder(nn.Module):
         self.softmax = nn.LogSoftmax(dim=1)
         self.attention = attention
         self.attention_layer = nn.Linear(hidden_size * 2, 1).to(device)
+        self.attention_combine = nn.Linear(hidden_size * 2, hidden_size).to(device)
         self.device = device
 
     def forward(self, input, hidden, encoder_hiddens):
@@ -25,8 +26,8 @@ class LSTMDecoder(nn.Module):
             attention_coeff = self.attention_layer(hiddens)
             context = torch.mm(torch.squeeze(encoder_hiddens).t(), torch.squeeze(attention_coeff,
                                                                             2).t()).view(1, 1, -1)
-            # At the moment pass attention as cell state
-            hidden = (hidden[0], context)
+            output = torch.cat((output, context), 2)
+            output = self.attention_combine(output)
 
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
