@@ -22,7 +22,7 @@ class LSTMDecoder(nn.Module):
 
         if self.attention:
             hiddens = torch.cat((encoder_hiddens, hidden[0].repeat(1, encoder_hiddens.size(1), 1)),
-                                dim=2)
+                                dim=1)
             attention_coeff = self.attention_layer(hiddens)
             context = torch.mm(torch.squeeze(encoder_hiddens, dim=1).t(), torch.squeeze(
                 attention_coeff, 2).t()).view(1, 1, -1)
