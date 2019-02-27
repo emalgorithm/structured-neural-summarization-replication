@@ -8,8 +8,6 @@ from models.lstm_encoder import LSTMEncoder
 from models.lstm_decoder import LSTMDecoder
 from tokens_util import prepare_tokens
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def main(model_name):
     model_dir = '../results/{}/'.format(model_name)
@@ -20,10 +18,11 @@ def main(model_name):
     pairs = pairs if not opt.n_samples else pairs[:opt.n_samples]
 
     hidden_size = 256
-    encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
+    encoder1 = LSTMEncoder(lang.n_words, hidden_size, opt.device).to(opt.device)
 
-    decoder = LSTMDecoder(hidden_size, lang.n_words, attention=opt.attention).to(device)
-    lstm2lstm = Seq2Seq(encoder1, decoder, device)
+    decoder = LSTMDecoder(hidden_size, lang.n_words, opt.device, attention=opt.attention).to(
+        opt.device)
+    lstm2lstm = Seq2Seq(encoder1, decoder, opt.device)
     train_iters(lstm2lstm, 500000, pairs, print_every=100, model_dir=model_dir, lang=lang)
 
 

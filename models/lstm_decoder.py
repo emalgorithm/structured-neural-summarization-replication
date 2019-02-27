@@ -2,11 +2,9 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, hidden_size, output_size, attention=False):
+    def __init__(self, hidden_size, output_size, device, attention=False):
         super(LSTMDecoder, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -16,6 +14,7 @@ class LSTMDecoder(nn.Module):
         self.softmax = nn.LogSoftmax(dim=1)
         self.attention = attention
         self.attention_layer = nn.Linear(hidden_size * 2, 1).to(device)
+        self.device = device
 
     def forward(self, input, hidden, encoder_hiddens):
         output = self.embedding(input).view(1, 1, -1)
