@@ -18,7 +18,7 @@ class LSTMDecoder(nn.Module):
         self.attention_combine = nn.Linear(hidden_size * 2, hidden_size).to(device)
         self.device = device
 
-    def forward(self, input, hidden, encoder_hiddens):
+    def forward(self, input, hidden, encoder_hiddens, input_seq=None):
         # encoder_hiddens has shape [batch_size, seq_len, hidden_dim]
         output = self.embedding(input).view(1, 1, -1)
 
@@ -31,7 +31,11 @@ class LSTMDecoder(nn.Module):
 
             # attention_coeff has shape [seq_len] and contains the attention coeffiecients for
             # each encoder hidden state
-            attention_coeff = F.softmax(torch.squeeze(self.attention_layer(hiddens)), dim=0)
+            # attention_coeff has shape [batch_size, seq_len, 1]
+            attention_coeff = self.attention_layer(hiddens)
+            attention_coeff = torch.squeeze(attention_coeff, dim=2)
+            attention_coeff = torch.squeeze(attention_coeff, dim=0)
+            attention_coeff = F.softmax(attention_coeff, dim=0)
 
             # Make encoder_hiddens of shape [hidden_dim, seq_len] as long as batch size is 1
             encoder_hiddens = torch.squeeze(encoder_hiddens, dim=0).t()
@@ -41,7 +45,16 @@ class LSTMDecoder(nn.Module):
             output = self.attention_combine(output)
 
         elif self.pointer_network:
-            pass
+            # Create a matrix of shape [batch_size, seq_len, 2 * hidden_dim] where the last
+            # dimension is a concatenation of the ith encoder hidden state and the current decoder
+            # hidden
+            hiddens = torch.cat((encoder_hiddens, hidden[0].repeat(1, encoder_hiddens.size(1), 1)),
+                                dim=2)
+
+            # attention_coeff has shape [seq_len] and contains the attention coeffiecients for
+            # each encoder hidden state
+            attention_coeff = F.softmax(torch.squeeze(self.attention_layer(hiddens)), dim=0)
+            # TODO: This is the output already
 
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
