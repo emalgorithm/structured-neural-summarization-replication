@@ -62,9 +62,10 @@ def prepare_tokens(num_samples=None):
     return lang, pairs
 
 
-def prepare_data():
+def prepare_data(num_samples=None):
     lang = TokenLang('code')
     pairs = read_data()
+    pairs = pairs if not num_samples else pairs[:num_samples]
     print("Read %s sentence pairs" % len(pairs))
     for pair in pairs:
         lang.addSentence(pair[0][0])

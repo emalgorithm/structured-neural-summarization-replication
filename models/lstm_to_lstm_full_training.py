@@ -1,10 +1,6 @@
 from __future__ import unicode_literals, print_function, division
 import random
-from models.lstm_encoder import LSTMEncoder
-from models.lstm_decoder import LSTMDecoder
-from models.attention_decoder import AttentionDecoder
-from models.lstm_to_lstm import Seq2Seq
-from tokens_util import prepare_tokens, tensors_from_pair_tokens, plot_loss
+from tokens_util import tensors_from_pair_tokens, plot_loss, tensors_from_pair_tokens_graph
 
 import torch
 import torch.nn as nn
@@ -13,35 +9,34 @@ from sklearn.metrics import f1_score
 import numpy as np
 from metrics import compute_rouge_scores
 import pickle
-import os
-import sys
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# lang, pairs = prepare_tokens()
-# # test_pairs = pairs[-10000:]
-# # val_pairs = pairs[-20000:-10000]
-# # train_pairs = pairs[:-20000]
-# # pairs = pairs[:100]
-# train_pairs, val_pairs, test_pairs = np.split(pairs, [int(.8*len(pairs)), int(.9*len(pairs))])
-#
-# test_pairs = test_pairs
-# val_pairs = val_pairs
-# train_pairs = train_pairs
 
-
-def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
+def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
     with torch.no_grad():
         loss = 0
         f1 = 0
         rouge_2 = 0
         rouge_l = 0
         for i in range(len(eval_pairs)):
-            eval_pair = eval_pairs[i]
-            input_tensor = eval_pair[0]
-            target_tensor = eval_pair[1]
+            if graph:
+                eval_pair = eval_pairs[i]
+                input_tensor = eval_pair[0][0].to(device)
+                adj_tensor = eval_pair[0][1].to(device)
+                target_tensor = eval_pair[1].to(device)
 
-            output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
+                output = seq2seq_model(sequence=input_tensor.view(-1), adj=adj_tensor,
+                                       target=target_tensor.view(-1))
+            else:
+                eval_pair = eval_pairs[i]
+                input_tensor = eval_pair[0]
+                target_tensor = eval_pair[1]
+
+                output = seq2seq_model(sequence=input_tensor.view(-1), target=target_tensor.view(
+                    -1))
+
             loss += criterion(output.view(-1, output.size(2)), target_tensor.view(-1))
             pred = output.view(-1, output.size(2)).argmax(1).cpu().numpy()
 
@@ -64,10 +59,15 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val'):
         return loss, f1, rouge_2, rouge_l
 
 
-def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
+def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, graph, adj_tensor=None):
     optimizer.zero_grad()
 
-    output = seq2seq_model(input_tensor.view(-1), target_tensor.view(-1))
+    if graph:
+        output = seq2seq_model(sequence=input_tensor.view(-1), adj=adj_tensor,
+                               target=target_tensor.view(-1))
+    else:
+        output = seq2seq_model(sequence=input_tensor.view(-1), target=target_tensor.view(-1))
+
     loss = criterion(output.view(-1, output.size(2)), target_tensor.view(-1))
     pred = output.view(-1, output.size(2)).argmax(1).cpu().numpy()
 
@@ -79,7 +79,7 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
 
 
 def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.001,
-                model_dir=None, lang=None):
+                model_dir=None, lang=None, graph=False):
     train_losses = []
     val_losses = []
 
@@ -97,18 +97,35 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
                                                   [int(.8 * len(pairs)), int(.9 * len(pairs))])
 
     optimizer = optim.Adam(seq2seq_model.parameters(), lr=learning_rate)
-    training_pairs = [tensors_from_pair_tokens(random.choice(train_pairs), lang)
-                      for i in range(n_iters)]
-    val_tensor_pairs = [tensors_from_pair_tokens(val_pair, lang) for val_pair in val_pairs]
+
+    if graph:
+        training_pairs = [tensors_from_pair_tokens_graph(random.choice(train_pairs), lang)
+                          for i in range(n_iters)]
+        val_tensor_pairs = [tensors_from_pair_tokens_graph(val_pair, lang) for val_pair in val_pairs]
+    else:
+        training_pairs = [tensors_from_pair_tokens(random.choice(train_pairs), lang)
+                          for i in range(n_iters)]
+        val_tensor_pairs = [tensors_from_pair_tokens(val_pair, lang) for val_pair in val_pairs]
+
     # test_tensor_pairs = [tensors_from_pair_tokens(test_pair, lang) for test_pair in test_pairs]
     criterion = nn.NLLLoss()
 
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
-        input_tensor = training_pair[0]
-        target_tensor = training_pair[1]
+        if graph:
+            input_tensor = training_pair[0][0].to(device)
+            adj_tensor = training_pair[0][1].to(device)
+            target_tensor = training_pair[1].to(device)
 
-        loss, pred = train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion)
+            loss, pred = train(input_tensor, target_tensor, seq2seq_model, optimizer,
+                               criterion, adj_tensor=adj_tensor, graph=graph)
+        else:
+            input_tensor = training_pair[0]
+            target_tensor = training_pair[1]
+
+            loss, pred = train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion,
+                               graph=graph)
+
         print_loss_total += loss
         plot_loss_total += loss
 
@@ -138,7 +155,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
 
             train_loss = print_loss_avg
             val_loss, val_f1, val_rouge_2, val_rouge_l = evaluate(seq2seq_model, val_tensor_pairs,
-                                                          criterion)
+                                                          criterion, graph=graph)
             # test_loss, test_f1, test_rouge_2, test_rouge_l = evaluate(seq2seq_model,
             #                                                          test_tensor_pairs,
             #                                                       criterion, eval='test')
@@ -159,21 +176,3 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
                         open(model_dir + 'res.pkl', 'wb'))
 
             plot_loss(train_losses, val_losses, file_path=model_dir + 'loss.jpg')
-
-
-# def main(model_name):
-#     model_dir = '../results/{}/'.format(model_name)
-#     if not os.path.exists(model_dir):
-#         os.makedirs(model_dir)
-#
-#     hidden_size = 256
-#     encoder1 = LSTMEncoder(lang.n_words, hidden_size).to(device)
-#     attn_decoder1 = LSTMDecoder(hidden_size, lang.n_words).to(device)
-#     # attn_decoder1 = AttentionDecoder(hidden_size, lang.n_words).to(device)
-#     lstm2lstm = Seq2Seq(encoder1, attn_decoder1, device)
-#     train_iters(lstm2lstm, 500000, print_every=100, model_dir=model_dir)
-#     # train_iters(lstm2lstm, 50, print_every=10, plot_every=1000)
-#
-#
-# if __name__ == "__main__":
-#     main(sys.argv[1])
