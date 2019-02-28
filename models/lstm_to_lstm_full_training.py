@@ -78,7 +78,7 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion):
     return loss.item(), pred
 
 
-def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.05,
+def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.01,
                 model_dir=None, lang=None):
     train_losses = []
     val_losses = []

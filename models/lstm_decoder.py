@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, hidden_size, output_size, device, attention=False):
+    def __init__(self, hidden_size, output_size, device, attention=False, pointer_network=False):
         super(LSTMDecoder, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -13,6 +13,7 @@ class LSTMDecoder(nn.Module):
         self.out = nn.Linear(hidden_size, output_size).to(device)
         self.softmax = nn.LogSoftmax(dim=1)
         self.attention = attention
+        self.pointer_network = pointer_network
         self.attention_layer = nn.Linear(hidden_size * 2, 1).to(device)
         self.attention_combine = nn.Linear(hidden_size * 2, hidden_size).to(device)
         self.device = device
@@ -22,13 +23,25 @@ class LSTMDecoder(nn.Module):
         output = self.embedding(input).view(1, 1, -1)
 
         if self.attention:
+            # Create a matrix of shape [batch_size, seq_len, 2 * hidden_dim] where the last
+            # dimension is a concatenation of the ith encoder hidden state and the current decoder
+            # hidden
             hiddens = torch.cat((encoder_hiddens, hidden[0].repeat(1, encoder_hiddens.size(1), 1)),
                                 dim=2)
-            attention_coeff = self.attention_layer(hiddens)
-            context = torch.mm(torch.squeeze(encoder_hiddens, dim=0).t(), torch.squeeze(
-                attention_coeff, 2).t()).view(1, 1, -1)
+
+            # attention_coeff has shape [seq_len] and contains the attention coeffiecients for
+            # each encoder hidden state
+            attention_coeff = F.softmax(torch.squeeze(self.attention_layer(hiddens)), dim=0)
+
+            # Make encoder_hiddens of shape [hidden_dim, seq_len] as long as batch size is 1
+            encoder_hiddens = torch.squeeze(encoder_hiddens, dim=0).t()
+
+            context = torch.matmul(encoder_hiddens, attention_coeff).view(1, 1, -1)
             output = torch.cat((output, context), 2)
             output = self.attention_combine(output)
+
+        elif self.pointer_network:
+            pass
 
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
