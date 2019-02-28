@@ -22,7 +22,7 @@ def main(model_name):
     decoder = LSTMDecoder(hidden_size, lang.n_words, opt.device, attention=opt.attention).to(
         opt.device)
     lstm2lstm = Seq2Seq(encoder1, decoder, opt.device)
-    train_iters(lstm2lstm, 500000, pairs, print_every=opt.print_every, model_dir=model_dir,
+    train_iters(lstm2lstm, opt.iterations, pairs, print_every=opt.print_every, model_dir=model_dir,
                 lang=lang)
 
 
@@ -32,6 +32,7 @@ parser.add_argument('--model_name', default="test10", help='model name')
 parser.add_argument('--device', default="cpu", help='cpu or cuda')
 parser.add_argument('--n_samples', type=int, default=None, help='Number of samples to train on')
 parser.add_argument('--print_every', type=int, default=1000, help='Number of samples to train on')
+parser.add_argument('--iterations', type=int, default=100, help='Number of samples to train on')
 
 opt = parser.parse_args()
 print(opt)
