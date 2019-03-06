@@ -1,5 +1,4 @@
 import os
-import torch
 import argparse
 
 from models.lstm_to_lstm import Seq2Seq
@@ -11,10 +10,12 @@ from models.gat_encoder import GATEncoder
 from models.gcn_encoder import GCNEncoder
 
 
-def main(model_name):
-    model_dir = '../results/{}/'.format(model_name)
+def main():
+    model_dir = '../results/{}/'.format(opt.model_name)
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
+    with open(model_dir + 'hyperparams.txt', 'w') as f:
+        f.write(str(opt))
 
     if opt.graph:
         lang, pairs = prepare_data(num_samples=opt.n_samples)
@@ -55,4 +56,4 @@ opt = parser.parse_args()
 print(opt)
 
 if __name__ == "__main__":
-    main(opt.model_name)
+    main()

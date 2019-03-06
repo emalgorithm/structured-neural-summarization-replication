@@ -175,7 +175,14 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
             val_rouge_2_scores.append(val_rouge_2)
             val_rouge_l_scores.append(val_rouge_l)
 
-            pickle.dump([train_losses, val_losses, val_f1_scores, val_rouge_2_scores,
-                         val_rouge_l_scores], open(model_dir + 'results.pkl', 'wb'))
+            results = {'train_losses': train_losses,
+                       'val_losses': val_losses,
+                       'val_f1_scores': val_f1_scores,
+                       'val_rouge_2_scores': val_rouge_2_scores,
+                       'val_rouge_l_scores': val_rouge_l_scores}
+
+            with open(model_dir + 'results.txt', 'w') as f:
+                f.write(str(results))
+            pickle.dump(results, open(model_dir + 'results.pkl', 'wb'))
 
             plot_loss(train_losses, val_losses, file_path=model_dir + 'loss.jpg')
