@@ -19,7 +19,7 @@ def get_dataset_from_dir(dir="../corpus/r252-corpus-features/"):
 
     # proto_files = [Path("../features-javac-master/Test.java.proto")]
 
-    for i, file in enumerate(proto_files[:100]):
+    for i, file in enumerate(proto_files):
         # nx_graph = get_nx_graph(file)
         # if i % 100 == 0:
         print("Extracting data from file {}".format(i+1))
