@@ -57,7 +57,7 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
         print('{} rouge_2_score: {}'.format(eval, rouge_2))
         print('{} rouge_l_score: {}'.format(eval, rouge_l))
 
-        return loss, f1, rouge_2, rouge_l
+        return loss.item(), f1, rouge_2, rouge_l
 
 
 def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, graph,
@@ -176,7 +176,6 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
             val_rouge_l_scores.append(val_rouge_l)
 
             pickle.dump([train_losses, val_losses, val_f1_scores, val_rouge_2_scores,
-                         val_rouge_l_scores],
-                        open('results/res.pkl', 'wb'))
+                         val_rouge_l_scores], open(model_dir + 'results.pkl', 'wb'))
 
             plot_loss(train_losses, val_losses, file_path=model_dir + 'loss.jpg')
