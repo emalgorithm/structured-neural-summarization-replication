@@ -37,8 +37,23 @@ class TokenLang:
         return np.array([self.index2word[idx] for idx in idxs])
 
 
+def read_data():
+    data = pickle.load(open('data/methods_tokens_graphs2.pkl', 'rb'))
+    # data = pickle.load(open('data/methods_tokens_graphs.pkl', 'rb'))
+    methods_source = data['methods_source']
+    methods_graphs = data['methods_graphs']
+    methods_names = data['methods_names']
+
+    pairs = [((methods_source[i], methods_graphs[i]), methods_names[i]) for i in range(len(
+        methods_source))]
+    np.random.shuffle(pairs)
+
+    return pairs
+
+
 def read_tokens():
-    data = pickle.load(open('data/methods_tokens_data.pkl', 'rb'))
+    data = pickle.load(open('data/methods_tokens_graphs.pkl', 'rb'))
+    # data = pickle.load(open('data/methods_tokens_data.pkl', 'rb'))
     # data = pickle.load(open('../data/methods_tokens_data.pkl', 'rb'))
     methods_source = data['methods_source']
     methods_names = data['methods_names']
@@ -75,19 +90,6 @@ def prepare_data(num_samples=None):
     return lang, pairs
 
 
-def read_data():
-    data = pickle.load(open('data/methods_tokens_graphs.pkl', 'rb'))
-    methods_source = data['methods_source']
-    methods_graphs = data['methods_graphs']
-    methods_names = data['methods_names']
-
-    pairs = [((methods_source[i], methods_graphs[i]), methods_names[i]) for i in range(len(
-        methods_source))]
-    np.random.shuffle(pairs)
-
-    return pairs
-
-
 def indexes_from_sentence_tokens(lang, sentence):
     return [lang.word2index[word] for word in sentence]
 
@@ -117,9 +119,10 @@ def sparse_adj_from_edges(edges):
 
 def tensors_from_pair_tokens_graph(pair, lang):
     input_tensor = tensor_from_sentence_tokens(lang, pair[0][0])
-    input_adj = sparse_adj_from_edges(pair[0][1])
+    input_adj = sparse_adj_from_edges(pair[0][1][0])
+    node_features = torch.tensor(pair[0][1][1])
     target_tensor = tensor_from_sentence_tokens(lang, pair[1])
-    return (input_tensor, input_adj), target_tensor
+    return (input_tensor, input_adj, node_features), target_tensor
 
 
 def plot_loss(train_losses, val_losses, test_losses=None, file_path='plots/loss.jpg'):

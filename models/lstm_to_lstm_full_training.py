@@ -25,10 +25,11 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
                 eval_pair = eval_pairs[i]
                 input_tensor = eval_pair[0][0].to(device)
                 adj_tensor = eval_pair[0][1].to(device)
+                node_features = eval_pair[0][2].to(device)
                 target_tensor = eval_pair[1].to(device)
 
                 output = seq2seq_model(sequence=input_tensor.view(-1), adj=adj_tensor,
-                                       target=target_tensor.view(-1))
+                                       target=target_tensor.view(-1), node_features=node_features)
             else:
                 eval_pair = eval_pairs[i]
                 input_tensor = eval_pair[0]
@@ -59,12 +60,13 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
         return loss, f1, rouge_2, rouge_l
 
 
-def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, graph, adj_tensor=None):
+def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, graph,
+          adj_tensor=None, node_features=None):
     optimizer.zero_grad()
 
     if graph:
         output = seq2seq_model(sequence=input_tensor.view(-1), adj=adj_tensor,
-                               target=target_tensor.view(-1))
+                               target=target_tensor.view(-1), node_features=node_features)
     else:
         output = seq2seq_model(sequence=input_tensor.view(-1), target=target_tensor.view(-1))
 
@@ -83,9 +85,9 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
     train_losses = []
     val_losses = []
 
-    # test_f1_scores = []
-    # test_rouge_2_scores = []
-    # test_rouge_l_scores = []
+    val_f1_scores = []
+    val_rouge_2_scores = []
+    val_rouge_l_scores = []
 
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
@@ -115,10 +117,11 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
         if graph:
             input_tensor = training_pair[0][0].to(device)
             adj_tensor = training_pair[0][1].to(device)
+            node_features = training_pair[0][2].to(device)
             target_tensor = training_pair[1].to(device)
 
             loss, pred = train(input_tensor, target_tensor, seq2seq_model, optimizer,
-                               criterion, adj_tensor=adj_tensor, graph=graph)
+                               criterion, adj_tensor=adj_tensor, graph=graph, node_features=node_features)
         else:
             input_tensor = training_pair[0]
             target_tensor = training_pair[1]
@@ -168,11 +171,12 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
             val_losses.append(val_loss)
             # test_losses.append(test_loss)
 
-            # test_f1_scores.append(test_f1)
-            # test_rouge_2_scores.append(test_rouge_2)
-            # test_rouge_l_scores.append(test_rouge_l)
+            val_f1_scores.append(val_f1)
+            val_rouge_2_scores.append(val_rouge_2)
+            val_rouge_l_scores.append(val_rouge_l)
 
-            pickle.dump([train_losses, val_losses],
-                        open(model_dir + 'res.pkl', 'wb'))
+            pickle.dump([train_losses, val_losses, val_f1_scores, val_rouge_2_scores,
+                         val_rouge_l_scores],
+                        open('results/res.pkl', 'wb'))
 
             plot_loss(train_losses, val_losses, file_path=model_dir + 'loss.jpg')

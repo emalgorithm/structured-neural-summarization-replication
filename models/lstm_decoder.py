@@ -44,18 +44,6 @@ class LSTMDecoder(nn.Module):
             output = torch.cat((output, context), 2)
             output = self.attention_combine(output)
 
-        elif self.pointer_network:
-            # Create a matrix of shape [batch_size, seq_len, 2 * hidden_dim] where the last
-            # dimension is a concatenation of the ith encoder hidden state and the current decoder
-            # hidden
-            hiddens = torch.cat((encoder_hiddens, hidden[0].repeat(1, encoder_hiddens.size(1), 1)),
-                                dim=2)
-
-            # attention_coeff has shape [seq_len] and contains the attention coeffiecients for
-            # each encoder hidden state
-            attention_coeff = F.softmax(torch.squeeze(self.attention_layer(hiddens)), dim=0)
-            # TODO: This is the output already
-
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
         output = self.softmax(self.out(output[0]))

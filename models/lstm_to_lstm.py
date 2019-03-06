@@ -15,7 +15,7 @@ class Seq2Seq(nn.Module):
         assert encoder.hidden_size == decoder.hidden_size, "Hidden dimensions of encoder and decoder " \
                                                     "must be equal!"
 
-    def forward(self, sequence, target, adj=None):
+    def forward(self, sequence, target, adj=None, node_features=None):
         batch_size = 1
         max_len = target.shape[0]
         target_vocab_size = self.decoder.output_size
@@ -34,6 +34,7 @@ class Seq2Seq(nn.Module):
             n_tokens = sequence.size(0)
             x = torch.zeros(n_nodes, encoder_output.size(2)).to(self.device)
             x[:n_tokens, :] = encoder_output.view(encoder_output.size(1), encoder_output.size(2))
+            x[n_tokens:, :] = node_features
             graph_hidden = self.graph_encoder(x=x, adj=adj)
 
             # TODO: Combine the graph representation with the seq_encoder final layer using mlp
