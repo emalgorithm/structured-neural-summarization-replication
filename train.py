@@ -19,7 +19,7 @@ def main():
 
     if opt.graph:
         lang, pairs = prepare_data(num_samples=opt.n_samples)
-        pairs = [pair for pair in pairs if len(pair[0][1]) > 0]
+        pairs = [pair for pair in pairs if len(pair[0][1][0]) > 0]
     else:
         lang, pairs = prepare_tokens(num_samples=opt.n_samples)
 
