@@ -52,7 +52,7 @@ def read_data():
 
 
 def read_tokens():
-    data = pickle.load(open('data/methods_tokens_graphs.pkl', 'rb'))
+    data = pickle.load(open('data/methods_tokens_graphs2.pkl', 'rb'))
     # data = pickle.load(open('data/methods_tokens_data.pkl', 'rb'))
     # data = pickle.load(open('../data/methods_tokens_data.pkl', 'rb'))
     methods_source = data['methods_source']
