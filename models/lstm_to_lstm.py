@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.functional as F
 
 
 class Seq2Seq(nn.Module):
@@ -11,6 +12,7 @@ class Seq2Seq(nn.Module):
         self.decoder = decoder
         self.device = device
         self.graph = graph
+        self.combine = nn.Linear(2 * encoder.hidden_size, encoder.hidden_size)
 
         assert encoder.hidden_size == decoder.hidden_size, "Hidden dimensions of encoder and decoder " \
                                                     "must be equal!"
@@ -37,9 +39,10 @@ class Seq2Seq(nn.Module):
             x[n_tokens:, :] = node_features
             graph_hidden = self.graph_encoder(x=x, adj=adj)
 
-            # TODO: Combine the graph representation with the seq_encoder final layer using mlp
+            new_hidden = self.combine(torch.cat((graph_hidden, torch.squeeze(hidden[1]))))
+            new_hidden = F.relu(new_hidden)
 
-            hidden = (graph_hidden.view(1, 1, graph_hidden.size(0)), hidden[1])
+            hidden = (new_hidden.view(1, 1, new_hidden.size(0)), hidden[1])
 
         # first input to the decoder is the <sos> tokens
         input = torch.tensor([[0]], device=self.device)
