@@ -9,7 +9,7 @@ class LSTMDecoder(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.embedding = nn.Embedding(output_size, hidden_size).to(device)
-        self.gru = nn.LSTM(hidden_size, hidden_size).to(device)
+        self.lstm = nn.LSTM(hidden_size, hidden_size).to(device)
         self.out = nn.Linear(hidden_size, output_size).to(device)
         self.softmax = nn.LogSoftmax(dim=1)
         self.attention = attention
@@ -45,7 +45,7 @@ class LSTMDecoder(nn.Module):
             output = self.attention_combine(output)
 
         output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
+        output, hidden = self.lstm(output, hidden)
         output = self.softmax(self.out(output[0]))
 
         return output, hidden

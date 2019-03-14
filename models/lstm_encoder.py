@@ -8,14 +8,14 @@ class LSTMEncoder(nn.Module):
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(input_size, hidden_size).to(device)
-        self.gru = nn.LSTM(hidden_size, hidden_size, batch_first=True).to(device)
+        self.lstm = nn.LSTM(hidden_size, hidden_size, batch_first=True).to(device)
         self.device = device
 
     def forward(self, input):
         hidden = self.init_hidden()
         embedded = self.embedding(input).view(1, -1, self.hidden_size)
         output = embedded
-        output, hidden = self.gru(output, hidden)
+        output, hidden = self.lstm(output, hidden)
         return output, hidden
 
     def init_hidden(self):
