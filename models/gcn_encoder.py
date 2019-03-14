@@ -4,6 +4,9 @@ from models.graph_convolutional_layer import GraphConvolution
 
 
 class GCNEncoder(nn.Module):
+    """
+        Graph encoder using a Graph Convolutional Network.
+    """
     def __init__(self, num_features, hidden_size, dropout=0):
         super(GCNEncoder, self).__init__()
 

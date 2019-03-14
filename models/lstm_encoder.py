@@ -3,6 +3,9 @@ import torch
 
 
 class LSTMEncoder(nn.Module):
+    """
+        Sequence encoder which makes use of a single-layer LSTM.
+    """
     def __init__(self, input_size, hidden_size, device):
         super(LSTMEncoder, self).__init__()
         self.hidden_size = hidden_size

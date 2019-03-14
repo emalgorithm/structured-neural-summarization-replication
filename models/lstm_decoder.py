@@ -4,24 +4,28 @@ import torch.nn.functional as F
 
 
 class LSTMDecoder(nn.Module):
-    def __init__(self, hidden_size, output_size, device, attention=False, pointer_network=False):
+    """
+    Sequence decoder which makes use of a single-layer LSTM.
+    """
+    def __init__(self, hidden_size, output_size, device, attention=False):
         super(LSTMDecoder, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
+        self.attention = attention
+        self.device = device
+
         self.embedding = nn.Embedding(output_size, hidden_size).to(device)
         self.lstm = nn.LSTM(hidden_size, hidden_size).to(device)
         self.out = nn.Linear(hidden_size, output_size).to(device)
         self.softmax = nn.LogSoftmax(dim=1)
-        self.attention = attention
-        self.pointer_network = pointer_network
         self.attention_layer = nn.Linear(hidden_size * 2, 1).to(device)
         self.attention_combine = nn.Linear(hidden_size * 2, hidden_size).to(device)
-        self.device = device
 
     def forward(self, input, hidden, encoder_hiddens, input_seq=None):
         # encoder_hiddens has shape [batch_size, seq_len, hidden_dim]
         output = self.embedding(input).view(1, 1, -1)
 
+        # Compute attention
         if self.attention:
             # Create a matrix of shape [batch_size, seq_len, 2 * hidden_dim] where the last
             # dimension is a concatenation of the ith encoder hidden state and the current decoder

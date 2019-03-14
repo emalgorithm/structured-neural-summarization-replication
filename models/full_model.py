@@ -4,6 +4,9 @@ import torch.functional as F
 
 
 class FullModel(nn.Module):
+    """
+    Complete methodNaming model.
+    """
     def __init__(self, encoder, decoder, device, graph_encoder=None, graph=False):
         super().__init__()
 
@@ -30,6 +33,7 @@ class FullModel(nn.Module):
         # output contains the hidden states for all input elements
         encoder_output, hidden = self.encoder(sequence)
 
+        # graph encoder
         if self.graph:
             # graph_hidden has shape [1, 1, hidden_size] and contains a graph representation
             n_nodes = adj.size(0)
@@ -47,6 +51,7 @@ class FullModel(nn.Module):
         # first input to the decoder is the <sos> tokens
         input = torch.tensor([[0]], device=self.device)
 
+        # sequence decoder
         for t in range(1, max_len):
             output, hidden = self.decoder(input, hidden, encoder_output)
             outputs[t] = output

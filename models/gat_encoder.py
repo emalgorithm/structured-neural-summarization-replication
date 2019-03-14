@@ -1,11 +1,12 @@
 import torch.nn as nn
-import torch.nn.functional as F
 from models.graph_convolutional_layer import GraphConvolution
 from models.graph_attention_layer import GraphAttentionLayer
-import torch
 
 
 class GATEncoder(nn.Module):
+    """
+    Graph encoder using a Graph Attention Network.
+    """
     def __init__(self, num_features, hidden_size, dropout=0):
         super(GATEncoder, self).__init__()
 
