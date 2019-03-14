@@ -16,6 +16,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
+    """
+    Evaluate model and return metrics.
+    """
     with torch.no_grad():
         loss = 0
         f1 = 0
@@ -63,6 +66,9 @@ def evaluate(seq2seq_model, eval_pairs, criterion, eval='val', graph=False):
 
 def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, graph,
           adj_tensor=None, node_features=None):
+    """
+    Train model for a single iteration.
+    """
     optimizer.zero_grad()
 
     if graph:
@@ -83,6 +89,9 @@ def train(input_tensor, target_tensor, seq2seq_model, optimizer, criterion, grap
 
 def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0.001,
                 model_dir=None, lang=None, graph=False):
+    """
+    Run complete training of the model.
+    """
     train_losses = []
     val_losses = []
 
@@ -101,6 +110,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
 
     optimizer = optim.Adam(seq2seq_model.parameters(), lr=learning_rate)
 
+    # Prepare data
     if graph:
         training_pairs = [tensors_from_pair_tokens_graph(random.choice(train_pairs), lang)
                           for i in range(n_iters)]
@@ -113,6 +123,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
     # test_tensor_pairs = [tensors_from_pair_tokens(test_pair, lang) for test_pair in test_pairs]
     criterion = nn.NLLLoss()
 
+    # Train
     for iter in range(1, n_iters + 1):
         training_pair = training_pairs[iter - 1]
         if graph:
@@ -145,11 +156,8 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
         rouge_2 += rouge_2_temp
         rouge_l += rouge_l_temp
 
-        # print("Pred: {}".format(lang.to_tokens(pred)))
-        # print("Target: {}".format(lang.to_tokens(target_tensor.numpy().reshape(-1))))
-        # print()
-
         if iter % print_every == 0:
+            # Evaluate
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('train (%d %d%%) %.4f' % (iter, iter / n_iters * 100, print_loss_avg))
@@ -160,9 +168,6 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
             train_loss = print_loss_avg
             val_loss, val_f1, val_rouge_2, val_rouge_l = evaluate(seq2seq_model, val_tensor_pairs,
                                                           criterion, graph=graph)
-            # test_loss, test_f1, test_rouge_2, test_rouge_l = evaluate(seq2seq_model,
-            #                                                          test_tensor_pairs,
-            #                                                       criterion, eval='test')
 
             if not val_losses or val_loss < min(val_losses):
                 torch.save(seq2seq_model.state_dict(), model_dir + 'model.pt')
@@ -176,6 +181,7 @@ def train_iters(seq2seq_model, n_iters, pairs, print_every=1000, learning_rate=0
             val_rouge_2_scores.append(val_rouge_2)
             val_rouge_l_scores.append(val_rouge_l)
 
+            # Store results
             results = {'train_losses': train_losses,
                        'val_losses': val_losses,
                        'val_f1_scores': val_f1_scores,

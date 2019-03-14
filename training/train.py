@@ -11,18 +11,27 @@ from models.gcn_encoder import GCNEncoder
 
 
 def main():
+    """
+    Entry-point for running the models.
+    """
+
+    # Create directory for saving results
     model_dir = '../results/{}/'.format(opt.model_name)
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
+
+    # Store hyperparams
     with open(model_dir + 'hyperparams.txt', 'w') as f:
         f.write(str(opt))
 
+    # Prepare data
     if opt.graph:
         lang, pairs = prepare_data(num_samples=opt.n_samples)
         pairs = [pair for pair in pairs if len(pair[0][1][0]) > 0]
     else:
         lang, pairs = prepare_tokens(num_samples=opt.n_samples)
 
+    # Create model
     hidden_size = 256
     encoder = LSTMEncoder(lang.n_words, hidden_size, opt.device).to(opt.device)
 
@@ -38,6 +47,7 @@ def main():
     else:
         model = FullModel(encoder=encoder, decoder=decoder, device=opt.device)
 
+    # Train model
     train_iters(model, opt.iterations, pairs, print_every=opt.print_every, model_dir=model_dir,
                 lang=lang, graph=opt.graph)
 
