@@ -1,5 +1,5 @@
 from graph_pb2 import FeatureNode, FeatureEdge
-from text_util import split_identifier_into_parts
+from data_processing.text_util import split_identifier_into_parts
 from pathlib import Path
 from graph_pb2 import Graph
 import networkx as nx

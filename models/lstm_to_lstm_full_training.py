@@ -1,6 +1,6 @@
 from __future__ import unicode_literals, print_function, division
 import random
-from tokens_util import tensors_from_pair_tokens, plot_loss, tensors_from_pair_tokens_graph
+from data_processing import tensors_from_pair_tokens, plot_loss, tensors_from_pair_tokens_graph
 
 import torch
 import torch.nn as nn

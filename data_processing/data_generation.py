@@ -1,4 +1,4 @@
-from data_extraction import get_dataset_from_dir, get_tokens_dataset_from_dir
+from data_processing.data_extraction import get_dataset_from_dir
 import pickle
 
 methods_source, methods_names, methods_graphs = get_dataset_from_dir(
