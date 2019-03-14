@@ -1,8 +1,8 @@
 import os
 import argparse
 
-from models.lstm_to_lstm import Seq2Seq
-from models.lstm_to_lstm_full_training import train_iters
+from models.full_model import FullModel
+from training.train_model import train_iters
 from models.lstm_encoder import LSTMEncoder
 from models.lstm_decoder import LSTMDecoder
 from data_processing.data_util import prepare_tokens, prepare_data
@@ -33,10 +33,10 @@ def main():
             graph_encoder = GATEncoder(hidden_size, hidden_size)
         else:
             graph_encoder = GCNEncoder(hidden_size, hidden_size)
-        model = Seq2Seq(encoder=encoder, graph_encoder=graph_encoder, decoder=decoder,
-                        device=opt.device)
+        model = FullModel(encoder=encoder, graph_encoder=graph_encoder, decoder=decoder,
+                          device=opt.device)
     else:
-        model = Seq2Seq(encoder=encoder, decoder=decoder, device=opt.device)
+        model = FullModel(encoder=encoder, decoder=decoder, device=opt.device)
 
     train_iters(model, opt.iterations, pairs, print_every=opt.print_every, model_dir=model_dir,
                 lang=lang, graph=opt.graph)

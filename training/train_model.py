@@ -1,13 +1,14 @@
 from __future__ import unicode_literals, print_function, division
 import random
-from data_processing import tensors_from_pair_tokens, plot_loss, tensors_from_pair_tokens_graph
+from data_processing.data_util import tensors_from_pair_tokens, plot_loss, \
+    tensors_from_pair_tokens_graph
 
 import torch
 import torch.nn as nn
 from torch import optim
 from sklearn.metrics import f1_score
 import numpy as np
-from metrics import compute_rouge_scores
+from training.evaluation_util import compute_rouge_scores
 import pickle
 
 
