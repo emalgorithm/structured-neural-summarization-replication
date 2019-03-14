@@ -47,10 +47,11 @@ parser.add_argument('--attention', type=bool, default=False, help='whether to us
 parser.add_argument('--model_name', default="test10", help='model name')
 parser.add_argument('--device', default="cpu", help='cpu or cuda')
 parser.add_argument('--n_samples', type=int, default=None, help='Number of samples to train on')
-parser.add_argument('--print_every', type=int, default=1000, help='Number of samples to train on')
-parser.add_argument('--iterations', type=int, default=100, help='Number of samples to train on')
-parser.add_argument('--graph', type=bool, default=False, help='Number of samples to train on')
-parser.add_argument('--gat', type=bool, default=False, help='Number of samples to train on')
+parser.add_argument('--print_every', type=int, default=1000, help='Print results after a fixed '
+                                                                  'number of iterations')
+parser.add_argument('--iterations', type=int, default=100, help='Number of iterations to train for')
+parser.add_argument('--graph', type=bool, default=False, help='Whether to use a graph encoder')
+parser.add_argument('--gat', type=bool, default=False, help='Whether to use GAT or GCN')
 
 opt = parser.parse_args()
 print(opt)
