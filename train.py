@@ -5,7 +5,7 @@ from models.lstm_to_lstm import Seq2Seq
 from models.lstm_to_lstm_full_training import train_iters
 from models.lstm_encoder import LSTMEncoder
 from models.lstm_decoder import LSTMDecoder
-from tokens_util import prepare_tokens, prepare_data
+from data_processing.data_util import prepare_tokens, prepare_data
 from models.gat_encoder import GATEncoder
 from models.gcn_encoder import GCNEncoder
 
