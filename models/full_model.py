@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.functional as F
 
 
-class Seq2Seq(nn.Module):
+class FullModel(nn.Module):
     def __init__(self, encoder, decoder, device, graph_encoder=None, graph=False):
         super().__init__()
 

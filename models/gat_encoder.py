@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from models.graph_convolution import GraphConvolution
+from models.graph_convolutional_layer import GraphConvolution
 from models.graph_attention_layer import GraphAttentionLayer
 import torch
 
