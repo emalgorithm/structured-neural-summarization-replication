@@ -1,12 +1,19 @@
-## Running the Code
+## Extracting the Dataset
 In order to extract the features from the corpus proto files, run:
-python data_generation.py
 
+`python data_processing/data_generation.py`
+
+In order for the command to be successful, it is necessary to have a directory 
+_corpus/r252-corpus-features_ with the protos of the corpus. Optionally, it is possible to 
+downloaded the extracted dataset at https://drive.google.com/file/d/14k4AgOVws4_TfPtDGefXzPn3x2Ph083h/view?usp=sharing. After putting the downloaded file
+ under the _data/_ directory, it is possible to train and evaluate the model.
+
+## Running the Models
 In order to train a model and evaluate a model, run:
-python train.py --model_name="lstm_gcn_to_lstm_attention" --device=cuda:0 --print_every=10000 
---device="cuda" --attention=True --graph=True --iterations=500000
+`python training/train.py --model_name="lstm_gcn_to_lstm_attention" 
+--print_every=10000 --attention=True --graph=True --iterations=500000`
 All the possible options when running a model can be seen by running:
-python train.py --help
+`python train.py --help`
 
 ## Pretrained Models
 A pretrained version of the best performing model (as a state dictionary) can be downloaded at 
