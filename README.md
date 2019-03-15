@@ -1,3 +1,5 @@
+# Structured Neural Summarization
+
 ## Extracting the Dataset
 In order to extract the features from the corpus proto files, run:
 
