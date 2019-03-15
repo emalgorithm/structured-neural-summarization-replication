@@ -10,9 +10,12 @@ downloaded the extracted dataset at https://drive.google.com/file/d/14k4AgOVws4_
 
 ## Running the Models
 In order to train a model and evaluate a model, run:
+
 `python training/train.py --model_name="lstm_gcn_to_lstm_attention" 
 --print_every=10000 --attention=True --graph=True --iterations=500000`
+
 All the possible options when running a model can be seen by running:
+
 `python train.py --help`
 
 ## Pretrained Models
