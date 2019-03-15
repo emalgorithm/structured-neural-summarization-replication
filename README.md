@@ -6,7 +6,8 @@ In order to extract the features from the corpus proto files, run:
 In order for the command to be successful, it is necessary to have a directory 
 _corpus/r252-corpus-features_ with the protos of the corpus. Optionally, it is possible to 
 downloaded the extracted dataset at https://drive.google.com/file/d/14k4AgOVws4_TfPtDGefXzPn3x2Ph083h/view?usp=sharing. After putting the downloaded file
- under the _data/_ directory, it is possible to train and evaluate the model.
+ under the _data/_ directory (which needs to be created), it is possible to train and evaluate the 
+ model.
 
 ## Running the Models
 In order to train a model and evaluate a model, run:
